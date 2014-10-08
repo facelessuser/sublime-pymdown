@@ -1,24 +1,31 @@
 [
     { "caption": "-" },
     {
-        "caption": "PyMdown Batch Convert",
-        "command": "py_mdown_batch",
-        "args": {"paths": []}
-    },
-    {
-        "caption": "PyMdown Batch Preview",
-        "command": "py_mdown_batch",
-        "args": {"paths": [], "preview": true}
-    },
-    {
-        "caption": "PyMdown Custom Batch Convert",
-        "command": "py_mdown_custom_batch",
-        "args": {"paths": []}
-    },
-    {
-        "caption": "PyMdown Custom Batch Preview",
-        "command": "py_mdown_custom_batch",
-        "args": {"paths": [], "preview": true}
+        "caption": "PyMdown Batch",
+        "children":
+        [
+            {
+                "caption": "Convert",
+                "command": "py_mdown_batch",
+                "args": {"paths": []}
+            },
+            {
+                "caption": "Preview",
+                "command": "py_mdown_batch",
+                "args": {"paths": [], "preview": true}
+            },
+            { "caption": "-" },
+            {
+                "caption": "Custom Convert",
+                "command": "py_mdown_custom_batch",
+                "args": {"paths": []}
+            },
+            {
+                "caption": "Custom Preview",
+                "command": "py_mdown_custom_batch",
+                "args": {"paths": [], "preview": true}
+            }
+        ]
     },
     { "caption": "-" }
 ]
