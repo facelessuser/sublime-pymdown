@@ -1,0 +1,26 @@
+{
+    // By default, mdown accepts proposed critic markups,
+    // you can change this behaviour to reject the markups
+    "reject": false,
+
+    // Point to the pymdown binary
+    "binary": {
+        "windows": "",
+        "osx": "",
+        "linux": ""
+    },
+
+    // The default patterns used when batch
+    // converting a folder. Patterns are only
+    // case insensitive on OSs that are.
+    // Duplicate files will be filtered out.
+    "batch_convert_patterns": [
+        "*.[mM][dD]",
+        "*.[mM][dD][oO][wW][nN]",
+        "*.[mM][aA][rR][kK][dD][oO][wW][nN]"
+    ],
+
+    // If SubNotify plugin is installed,
+    // use it for select messages.
+    "use_subnotify": true
+}
