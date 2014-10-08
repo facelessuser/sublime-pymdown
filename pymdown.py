@@ -85,7 +85,7 @@ class PyMdownWorker(object):
         self.patterns = list(kwargs.get('patterns', settings.get('batch_convert_patterns', [])))
         self.critic_accept = bool(kwargs.get('critic_accept', False))
         self.critic_dump = bool(kwargs.get('critic_dump', False))
-        self.title = str(kwargs.get('title', 'Untitled'))
+        self.title = kwargs.get('title', None)
         self.basepath = str(kwargs.get('basepath', None))
         self.batch = bool(kwargs.get('batch', False))
         self.preview = bool(kwargs.get('preview', False))

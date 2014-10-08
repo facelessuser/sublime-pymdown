@@ -22,5 +22,5 @@
 
     // If SubNotify plugin is installed,
     // use it for select messages.
-    "use_subnotify": true
+    "use_sub_notify": true
 }
