@@ -4,7 +4,7 @@ from os.path import join, basename, dirname, exists, isfile
 import _thread as thread
 import subprocess
 import sys
-# import traceback
+import traceback
 try:
     from SubNotify.sub_notify import SubNotifyIsReadyCommand as Notify
 except:
@@ -83,7 +83,7 @@ class PyMdownWorker(object):
         self.paths = kwargs.get('paths', [])
         self.buffer = kwargs.get('buffer', [])
         self.patterns = list(kwargs.get('patterns', settings.get('batch_convert_patterns', [])))
-        self.critic_accept = bool(kwargs.get('critic_accept', False))
+        self.critic_mode = kwargs.get('critic_mode', 'view')
         self.critic_dump = bool(kwargs.get('critic_dump', False))
         self.title = kwargs.get('title', None)
         self.basepath = str(kwargs.get('basepath', None))
@@ -108,10 +108,12 @@ class PyMdownWorker(object):
                 cmd.append("--basepath=%s" % self.basepath)
             if self.settings:
                 cmd.append += ["-s", self.settings]
-            if self.critic_accept:
+            if self.critic_mode == 'accept':
                 cmd.append('-a')
-            else:
+            elif self.critic_mode == 'reject':
                 cmd.append('-r')
+            elif self.critic_mode == 'view':
+                cmd += ['-r', '-a']
             if self.batch:
                 cmd.append('-b')
             if self.plain:
@@ -152,6 +154,7 @@ class PyMdownWorker(object):
             self.results += p.communicate()[0].decode("utf-8")
             returncode = p.returncode
         except:
+            self.results += str(traceback.format_exec())
             returncode = 1
         return returncode
 
@@ -163,6 +166,7 @@ class PyMdownWorker(object):
             self.results += p.communicate()[0].decode("utf-8")
             returncode = p.returncode
         except:
+            self.results += str(traceback.format_exec())
             returncode = 1
         return returncode
 
@@ -210,13 +214,25 @@ class PyMdownWorker(object):
 ###############################
 # Batch Processing Commands
 ###############################
+BATCH_EMPTY = 0
+BATCH_FILE = 1
+BATCH_DIR = 2
+BATCH_MIXED = 3
+BATCH_MISSING = 4
+
+
 class PyMdownBatchCommand(sublime_plugin.WindowCommand):
+    kind = None
+    CONVERT = "Convert"
+    PREVIEW = "Preview"
+
     def run(self, paths=[], patterns=None, preview=False):
         if not PyMdownWorker.working:
+            settings = sublime.load_settings("pymdown.sublime-settings")
             options = {
                 "paths": paths,
                 "batch": True,
-                "critic_accept": sublime.load_settings("pymdown.sublime-settings").get("critic_reject", False),
+                "critic_accept": settings.get("critic_mode", 'view'),
                 "preview": preview,
                 "callback": self.callback
             }
@@ -233,8 +249,54 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
             else:
                 notify(handle_line_endings(msg))
 
+    def determine_type(self, paths=[]):
+        kind = BATCH_EMPTY
+        has_dirs = False
+        has_files = False
+        missing = False
+        for path in paths:
+            if not exists(path):
+                kind = BATCH_MISSING
+                missing = True
+                break
+            if isfile(path):
+                has_files = True
+                kind = BATCH_FILE
+            else:
+                has_dirs = True
+                kind = BATCH_DIR
+
+            if has_dirs and has_files:
+                kind = BATCH_MIXED
+                break
+        if missing and kind == BATCH_FILE:
+            kind = BATCH_MISSING
+        elif kind == BATCH_MISSING and has_dirs:
+            kind = BATCH_DIR
+        self.kind = kind
+        return kind
+
     def is_enabled(self, *args, **kwargs):
-        return not PyMdownWorker.working
+        enabled = True
+        if not PyMdownWorker.working:
+            batch_type = self.determine_type(kwargs.get('paths', []))
+            if batch_type in (BATCH_MISSING, BATCH_MIXED, BATCH_EMPTY):
+                enabled = False
+        else:
+            enabled = False
+        return enabled
+
+    def description(self, *args, **kwargs):
+        description = '%s Folder(s)...'
+        if not PyMdownWorker.working:
+            batch_type = self.determine_type(kwargs.get('paths', []))
+            if batch_type in (BATCH_MISSING, BATCH_MIXED, BATCH_EMPTY):
+                description = 'NA'
+            elif batch_type == BATCH_FILE:
+                description = '%s File(s)...'
+        else:
+            description = 'NA'
+        return description % (self.PREVIEW if kwargs.get('preview', False) else self.CONVERT)
 
     def callback(self, results, err):
         print("error_status %s" % str(err))
@@ -246,6 +308,9 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
 
 
 class PyMdownCustomBatchCommand(PyMdownBatchCommand):
+    CONVERT = "Custom Convert"
+    PREVIEW = "Custom Preview"
+
     def run(self, paths=[], preview=False):
         self.paths = paths
         self.preview = preview
@@ -313,7 +378,7 @@ class PyMdownCommand(sublime_plugin.TextCommand):
         self.options = {
             'title': title if title is not None else 'Untitled',
             'basepath': basepath,
-            'critic_accept': not settings.get("critic_reject", False),
+            'critic_mode': settings.get("mode", "view"),
             'settings': alternate_settings,
             'callback': self.callback
         }
@@ -468,19 +533,20 @@ class PyMdownConvertCommand(PyMdownCommand):
             self.output(results)
 
 
-class PyMdownCriticStripCommand(PyMdownCommand):
+class PyMdownCriticCommand(PyMdownCommand):
     message = "pymdown failed to strip your critic comments!"
+    modes = ('view', 'accept', 'reject')
 
-    def run(self, edit, reject=False, alternate_settings=None):
+    def run(self, edit, mode='view', alternate_settings=None):
         self.setup(alternate_settings)
-        self.reject = reject
+        self.mode = mode if mode in self.modes else 'view'
         self.convert()
 
     def convert(self):
         self.options['critic_dump'] = True
         self.options['quiet'] = True
         self.options['force_stdout'] = True
-        self.options['critic_accept'] = not self.reject
+        self.options['critic_mode'] = self.mode
         bfr = []
         for line in self.view.lines(sublime.Region(0, self.view.size())):
             bfr.append(self.view.substr(line) + '\n')

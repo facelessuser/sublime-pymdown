@@ -1,7 +1,8 @@
 {
-    // By default, mdown accepts proposed critic markups,
-    // you can change this behaviour to reject the markups
-    "reject": false,
+    // By default, pymdown will just process the marks for display,
+    // but you can change this behaviour to reject or accept the critic marks
+    // (view|accept|reject|none)
+    "critic_mode": "view",
 
     // Point to the pymdown binary
     "binary": {

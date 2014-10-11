@@ -5,23 +5,23 @@
         "children":
         [
             {
-                "caption": "Convert",
+                // "caption": "Convert",
                 "command": "py_mdown_batch",
                 "args": {"paths": []}
             },
             {
-                "caption": "Preview",
+                // "caption": "Preview",
                 "command": "py_mdown_batch",
                 "args": {"paths": [], "preview": true}
             },
             { "caption": "-" },
             {
-                "caption": "Custom Convert",
+                // "caption": "Custom Convert",
                 "command": "py_mdown_custom_batch",
                 "args": {"paths": []}
             },
             {
-                "caption": "Custom Preview",
+                // "caption": "Custom Preview",
                 "command": "py_mdown_custom_batch",
                 "args": {"paths": [], "preview": true}
             }

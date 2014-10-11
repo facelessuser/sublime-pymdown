@@ -32,14 +32,21 @@ No commands are provided out of the box currently except for the batch convert c
         "args": {"target": "sublime", "modes": ["template", "plain", "no_template"]}
     },
     {
+        "caption": "PyMdown: Critic Markdown (view)",
+        "command": "py_mdown_critic",
+        "args": {"critic_mode": "view"}
+    },
+    {
         "caption": "PyMdown: Critic Strip Markdown (accept)",
-        "command": "py_mdown_critic_strip"
+        "command": "py_mdown_critic",
+        "args": {"critic_mode": "accept"}
     },
     {
         "caption": "PyMdown: Critic Strip Markdown (reject)",
-        "command": "py_mdown_critic_strip",
-        "args": {"reject": true}
+        "command": "py_mdown_critic",
+        "args": {"critic_mode": "reject"}
     },
+
 ```
 
 # License
