@@ -1,6 +1,6 @@
 import sublime
 import sublime_plugin
-from os.path import join, basename, dirname, exists, isfile
+from os.path import join, basename, dirname, exists, isfile, splitext
 import _thread as thread
 import subprocess
 import sys
@@ -62,7 +62,7 @@ def parse_file_name(file_name):
         title = "Untitled"
         basepath = None
     else:
-        title = basename(file_name)
+        title = splitext(basename(file_name))[0]
         basepath = dirname(file_name)
     return title, basepath
 
