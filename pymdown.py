@@ -103,9 +103,9 @@ class PyMdownWorker(object):
         if exists(self.binary):
             cmd.append(self.binary)
             if self.title:
-                cmd.append("--title=%s" % self.title)
+                cmd += ["--title", self.title]
             if self.basepath:
-                cmd.append("--basepath=%s" % self.basepath)
+                cmd += ["--basepath", self.basepath]
             if self.settings:
                 cmd.append += ["-s", self.settings]
             if self.critic_mode == 'accept':
@@ -151,7 +151,8 @@ class PyMdownWorker(object):
             p = self.get_process(cmd)
             for line in self.buffer:
                 p.stdin.write(line.encode('utf-8'))
-            self.results += p.communicate()[0].decode("utf-8")
+            results, errors = p.communicate()
+            self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
         except:
             self.results += str(traceback.format_exec())
@@ -162,8 +163,8 @@ class PyMdownWorker(object):
         returncode = 0
         try:
             p = self.get_process(cmd)
-
-            self.results += p.communicate()[0].decode("utf-8")
+            results, errors = p.communicate()
+            self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
         except:
             self.results += str(traceback.format_exec())
