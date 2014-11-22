@@ -22,8 +22,32 @@ else:
 
 DANGER_PATTER_MSG = \
     '''Are you sure you want to use the pattern: %s?
-
+`
 This may try and convert more than you bargined for.'''
+
+
+def get_environ():
+    import os
+    env = {}
+    env.update(os.environ)
+
+    if _PLATFORM != 'windows':
+        shell = env['SHELL']
+        p = subprocess.Popen(
+            [shell, '-l', '-c', 'echo "#@#@#${PATH}#@#@#"'],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        result = p.communicate()[0].decode('utf8').split('#@#@#')
+        if len(result) > 1:
+            bin_paths = result[1].split(':')
+            if len(bin_paths):
+                env['PATH'] = ':'.join(bin_paths)
+
+    env['PYTHONIOENCODING'] = 'utf8'
+    env['LANG'] = 'en_US.UTF-8'
+    env['LC_CTYPE'] = 'en_US.UTF-8'
+
+    return env
 
 
 ###############################
@@ -100,7 +124,7 @@ class PyMdownWorker(object):
 
     def parse_options(self):
         cmd = []
-        if exists(self.binary):
+        if self.binary:
             cmd.append(self.binary)
             if self.title:
                 cmd += ["--title", self.title]
@@ -141,7 +165,8 @@ class PyMdownWorker(object):
         else:
             p = subprocess.Popen(
                 cmd,
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env=get_environ()
             )
         return p
 
@@ -155,7 +180,7 @@ class PyMdownWorker(object):
             self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
         except:
-            self.results += str(traceback.format_exec())
+            self.results += str(traceback.format_exc())
             returncode = 1
         return returncode
 
@@ -167,7 +192,7 @@ class PyMdownWorker(object):
             self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
         except:
-            self.results += str(traceback.format_exec())
+            self.results += str(traceback.format_exc())
             returncode = 1
         return returncode
 
