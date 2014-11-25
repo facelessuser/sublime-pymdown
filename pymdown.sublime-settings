@@ -6,9 +6,9 @@
 
     // Point to the pymdown binary
     "binary": {
-        "windows": "",
-        "osx": "",
-        "linux": ""
+        "windows": "pymdown.exe",
+        "osx": "pymdown",
+        "linux": "pymdown"
     },
 
     // The default patterns used when batch

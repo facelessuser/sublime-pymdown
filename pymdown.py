@@ -160,7 +160,8 @@ class PyMdownWorker(object):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             p = subprocess.Popen(
                 cmd, startupinfo=startupinfo,
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env=get_environ()
             )
         else:
             p = subprocess.Popen(
