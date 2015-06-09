@@ -1,3 +1,9 @@
+"""
+PyMdown for Sublime.
+
+Licensed under MIT
+Copyright (c) 2014 - 2015 Isaac Muse <isaacmuse@gmail.com>
+"""
 import sublime
 import sublime_plugin
 from os.path import join, basename, dirname, exists, isfile, splitext
@@ -7,10 +13,15 @@ import sys
 import traceback
 try:
     from SubNotify.sub_notify import SubNotifyIsReadyCommand as Notify
-except:
+except Exception:
     class Notify:
+
+        """Notify fallback class."""
+
         @classmethod
         def is_ready(cls):
+            """Return false to disable notifications."""
+
             return False
 
 if sys.platform.startswith('win'):
@@ -27,6 +38,8 @@ This may try and convert more than you bargined for.'''
 
 
 def get_environ():
+    """Get environment and force utf-8."""
+
     import os
     env = {}
     env.update(os.environ)
@@ -54,18 +67,26 @@ def get_environ():
 # General Helper Methods
 ###############################
 def log(msg):
+    """Log messages."""
+
     print("PyMdown:\n%s" % msg)
 
 
 def status_notify(msg):
+    """Notify in status bar."""
+
     sublime.status_message(msg)
 
 
 def err_dialog(msg):
+    """Error message via dialog."""
+
     sublime.error_message("PyMdown:\n%s" % msg)
 
 
 def notify(msg):
+    """Notification message."""
+
     settings = sublime.load_settings("pymdown.sublime-settings")
     if settings.get("use_sub_notify", False) and Notify.is_ready():
         sublime.run_command("sub_notify", {"title": "PyMdown", "msg": msg})
@@ -74,6 +95,8 @@ def notify(msg):
 
 
 def error(msg):
+    """Error message."""
+
     settings = sublime.load_settings("pymdown.sublime-settings")
     if settings.get("use_sub_notify", False) and Notify.is_ready():
         sublime.run_command("sub_notify", {"title": "PyMdown", "msg": msg, "level": "error"})
@@ -82,6 +105,8 @@ def error(msg):
 
 
 def parse_file_name(file_name):
+    """Parse the file name."""
+
     if file_name is None or not exists(file_name):
         title = "Untitled"
         basepath = None
@@ -92,6 +117,8 @@ def parse_file_name(file_name):
 
 
 def handle_line_endings(text):
+    """Strip out carriage returns."""
+
     return text.replace('\r', '')
 
 
@@ -99,9 +126,14 @@ def handle_line_endings(text):
 # PyMdown Worker (Threaded by calls)
 ###############################
 class PyMdownWorker(object):
+
+    """Worker object that calls PyMdown and returns results."""
+
     working = False
 
     def __init__(self, **kwargs):
+        """Initialize."""
+
         settings = sublime.load_settings("pymdown.sublime-settings")
         self.binary = settings.get("binary", {}).get(_PLATFORM, "")
         self.paths = kwargs.get('paths', [])
@@ -123,6 +155,8 @@ class PyMdownWorker(object):
         self.cmd = []
 
     def parse_options(self):
+        """Parse options."""
+
         cmd = []
         if self.binary:
             cmd.append(self.binary)
@@ -155,6 +189,8 @@ class PyMdownWorker(object):
         return cmd
 
     def get_process(self, cmd):
+        """Get the subprocess object."""
+
         if _PLATFORM == "windows":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -172,6 +208,8 @@ class PyMdownWorker(object):
         return p
 
     def execute_buffer(self, cmd):
+        """Execute on a buffer."""
+
         returncode = 0
         try:
             p = self.get_process(cmd)
@@ -180,24 +218,28 @@ class PyMdownWorker(object):
             results, errors = p.communicate()
             self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
-        except:
+        except Exception:
             self.results += str(traceback.format_exc())
             returncode = 1
         return returncode
 
     def execute(self, cmd):
+        """Execute on file paths."""
+
         returncode = 0
         try:
             p = self.get_process(cmd)
             results, errors = p.communicate()
             self.results += (results + errors).decode("utf-8")
             returncode = p.returncode
-        except:
+        except Exception:
             self.results += str(traceback.format_exc())
             returncode = 1
         return returncode
 
     def process_pattern(self, pth):
+        """Process file patterns."""
+
         if isfile(pth):
             ptrns = [pth]
         else:
@@ -205,6 +247,8 @@ class PyMdownWorker(object):
         return ptrns
 
     def call_callback(self, err):
+        """Call the callback function."""
+
         if self.callback and callable(self.callback):
             sublime.set_timeout(
                 lambda results=self.results, err=err: self.callback(self.results, err),
@@ -212,6 +256,8 @@ class PyMdownWorker(object):
             )
 
     def run(self):
+        """Run PyMdown on provided buffer or paths."""
+
         err = False
         self.cmd = self.parse_options()
         self.results = ''
@@ -249,11 +295,16 @@ BATCH_MISSING = 4
 
 
 class PyMdownBatchCommand(sublime_plugin.WindowCommand):
+
+    """Sublime command to batch process markdown files."""
+
     kind = None
     CONVERT = "Convert"
     PREVIEW = "Preview"
 
     def run(self, paths=[], patterns=None, preview=False):
+        """Run the command."""
+
         if not PyMdownWorker.working:
             settings = sublime.load_settings("pymdown.sublime-settings")
             options = {
@@ -268,6 +319,8 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
             thread.start_new_thread(PyMdownWorker(**options).run, ())
 
     def report(self, msg, console=False, err=False):
+        """Report results."""
+
         if console:
             log(handle_line_endings(msg))
         else:
@@ -277,6 +330,12 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
                 notify(handle_line_endings(msg))
 
     def determine_type(self, paths=[]):
+        """
+        Determine run type.
+
+        Is this a batch run, file run, directory run, etc.
+        """
+
         kind = BATCH_EMPTY
         has_dirs = False
         has_files = False
@@ -304,6 +363,8 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
         return kind
 
     def is_enabled(self, *args, **kwargs):
+        """Check if the command is enabled."""
+
         enabled = True
         if not PyMdownWorker.working:
             batch_type = self.determine_type(kwargs.get('paths', []))
@@ -314,6 +375,8 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
         return enabled
 
     def description(self, *args, **kwargs):
+        """Description for menus."""
+
         description = '%s Folder(s)...'
         if not PyMdownWorker.working:
             batch_type = self.determine_type(kwargs.get('paths', []))
@@ -326,6 +389,8 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
         return description % (self.PREVIEW if kwargs.get('preview', False) else self.CONVERT)
 
     def callback(self, results, err):
+        """To be called after conversion."""
+
         print("error_status %s" % str(err))
         self.report(results, console=True)
         if err:
@@ -335,10 +400,15 @@ class PyMdownBatchCommand(sublime_plugin.WindowCommand):
 
 
 class PyMdownCustomBatchCommand(PyMdownBatchCommand):
+
+    """Custom batch conversion command."""
+
     CONVERT = "Custom Convert"
     PREVIEW = "Custom Preview"
 
     def run(self, paths=[], preview=False):
+        """Run the command."""
+
         self.paths = paths
         self.preview = preview
         settings = sublime.load_settings("pymdown.sublime-settings")
@@ -349,6 +419,8 @@ class PyMdownCustomBatchCommand(PyMdownBatchCommand):
         view.sel().add(sublime.Region(0, view.size()))
 
     def process_patterns(self, value):
+        """Process the file patterns."""
+
         if value != "":
             patterns = []
             for p in [v.strip() for v in value.split(';')]:
@@ -370,9 +442,18 @@ class PyMdownCustomBatchCommand(PyMdownBatchCommand):
 # Sublime Buffer Commands
 ###############################
 class PyMdownEditText(sublime_plugin.TextCommand):
+
+    """Command for editting th view buffer."""
+
     wbfr = None
 
     def run(self, edit, mode='insert', save=False):
+        """
+        Run the command.
+
+        Can insert or replace.
+        """
+
         cls = PyMdownEditText
         if mode == 'insert':
             self.view.insert(edit, 0, handle_line_endings(cls.wbfr))
@@ -388,17 +469,26 @@ class PyMdownEditText(sublime_plugin.TextCommand):
 
     @classmethod
     def set_wbfr(cls, text):
+        """Set the buffer to write."""
+
         cls.wbfr = text
 
     @classmethod
     def clear_wbfr(cls):
+        """Clear the write buffer."""
+
         cls.wbfr = None
 
 
 class PyMdownCommand(sublime_plugin.TextCommand):
+
+    """Base class for Buffer conversion."""
+
     message = "<placeholder>"
 
     def setup(self, alternate_settings=None):
+        """Setup of genreal settings."""
+
         settings = sublime.load_settings("pymdown.sublime-settings")
         self.file_name = self.view.file_name()
         title, basepath = parse_file_name(self.view.file_name())
@@ -411,25 +501,34 @@ class PyMdownCommand(sublime_plugin.TextCommand):
         }
 
     def callback(self, results, err):
-        pass
+        """Callback after conversion."""
 
     def convert(self, edit):
-        pass
+        """Convert from Markdown to HTML."""
 
     def call(self):
+        """Call the worker."""
+
         if not PyMdownWorker.working:
             thread.start_new_thread(PyMdownWorker(**self.options).run, ())
         else:
             error("PyMdown Worker is already running!")
 
     def error_message(self):
+        """Error message."""
+
         error(self.message)
 
     def is_enabled(self, *args, **kwargs):
+        """Check if command is enabled."""
+
         return not PyMdownWorker.working
 
 
 class PyMdownConvertCommand(PyMdownCommand):
+
+    """Convert the buffer."""
+
     message = "pymdown failed to generate html!"
 
     def run(
@@ -437,6 +536,8 @@ class PyMdownConvertCommand(PyMdownCommand):
         alternate_settings=None,
         modes=['template']
     ):
+        """Run the command."""
+
         window = self.view.window()
         if window is None:
             return
@@ -465,6 +566,7 @@ class PyMdownConvertCommand(PyMdownCommand):
             self.launch_mode(plain, ignore_template)
 
     def process_choice(self, value):
+        """Process the user arguments for conversion."""
         if value >= 0:
             plain = False
             ignore_template = False
@@ -476,13 +578,18 @@ class PyMdownConvertCommand(PyMdownCommand):
             self.launch_mode(plain, ignore_template)
 
     def launch_mode(self, plain=False, ignore_template=False):
+        """Wrapper around conversion that sets additonal settings according to launch mode."""
+
         self.plain = plain
         self.ignore_template = ignore_template
         self.convert()
 
     def output(self, results):
+        """Redirect to the appropriate output."""
+
         if self.target == "browser":
             # Nothing to do
+            print(results)
             notify("Conversion complete!\nOpening in browser...")
         elif self.target == "clipboard":
             sublime.set_clipboard(results)
@@ -515,6 +622,8 @@ class PyMdownConvertCommand(PyMdownCommand):
             error("Unknown output type!")
 
     def convert(self):
+        """Convert the buffer."""
+
         if self.target == "browser":
             self.options['preview'] = True
         else:
@@ -552,6 +661,8 @@ class PyMdownConvertCommand(PyMdownCommand):
         self.call()
 
     def callback(self, results, err):
+        """Callback after conversion."""
+
         if err:
             if self.target == "browser":
                 log(handle_line_endings(results))
@@ -561,15 +672,22 @@ class PyMdownConvertCommand(PyMdownCommand):
 
 
 class PyMdownCriticCommand(PyMdownCommand):
+
+    """Command to view, accept, or reject critic marks."""
+
     message = "pymdown failed to strip your critic comments!"
     modes = ('view', 'accept', 'reject')
 
     def run(self, edit, mode='view', alternate_settings=None):
+        """Run the command."""
+
         self.setup(alternate_settings)
         self.mode = mode if mode in self.modes else 'view'
         self.convert()
 
     def convert(self):
+        """Convert the buffer."""
+
         self.options['critic_dump'] = True
         self.options['quiet'] = True
         self.options['force_stdout'] = True
@@ -581,6 +699,8 @@ class PyMdownCriticCommand(PyMdownCommand):
         self.call()
 
     def callback(self, results, err):
+        """Callback after conversion."""
+
         if err:
             log(handle_line_endings(results))
             self.error_message()
